@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Giz Resource Map Admin Panel</title>
+    <style media="screen">
+      .message {
+        padding: 1rem;
+        border: 1px solid grey;
+        margin-bottom: 1rem;
+      }
+      .message.success {
+        background: #a6dcf9;
+      }
+      .message.error {
+        background: #fd9595;
+      }
+    </style>
+  </head>
+  <body>
+    <% if (req.query.error) { %>
+      <div class="message error">Error uploading file</div>
+    <% } else if (req.query.success) { %>
+      <div class="message success">File uploaded successfully!</div>
+    <% } %>
+
+    <form action="/upload_data" method="post" enctype="multipart/form-data">
+      <label>Upload TSV file:</label>
+      <input type="file" name="file">
+      <br>
+      <br>
+      <input type="submit" value="Upload">
+    </form>
+
+    <br>
+    <br>
+    <br>
+    <br>
+    <a href="#" onclick="window.location = window.location.href.replace(/:\/\//, '://log:out@')">
+      Logout
+    </a>
+  </body>
+</html>

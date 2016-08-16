@@ -1,0 +1,29 @@
+{
+  "name": "resource-map-backend",
+  "version": "1.0.0",
+  "description": "Admin Backend for uploading data to the resource-map app",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PfeffermindGames/resource-map-backend.git"
+  },
+  "author": "Pfeffermind GmbH",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PfeffermindGames/resource-map-backend/issues"
+  },
+  "homepage": "https://github.com/PfeffermindGames/resource-map-backend#readme",
+  "dependencies": {
+    "basic-auth": "^1.0.4",
+    "ejs": "^2.5.1",
+    "express": "^4.14.0",
+    "multer": "^1.2.0"
+  },
+  "engines": {
+    "node": "6.3.1"
+  }
+}
