@@ -1,16 +1,13 @@
 const production = process.env.NODE_ENV === 'production';
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
-const exec = require('child_process').exec;
 const multer = require('multer');
 const authMiddleware = require('./middlewares/auth-middleware');
+const DataUploader = require('./data-uploader');
 
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 const port = process.env.PORT || 3000;
-const jekyllAppPath = path.resolve(__dirname, '../doi-extractives-data');
-const jekyllProdDataPath = path.resolve(jekyllAppPath, 'data/regional/production.tsv');
 
 app.use(authMiddleware);
 app.set('view engine', 'ejs');
@@ -24,19 +21,16 @@ app.post('/upload_data', upload.single('file'), (req, res) => {
     res.redirect(301, '/?error=nofile');
     return;
   }
-  fs.createReadStream(req.file.path)
-    .pipe(fs.createWriteStream(jekyllProdDataPath));
+  const uploader = new DataUploader(req.file.path);
 
-  console.log('Rebuilding Jekyll app...');
-
-  exec(`cd ${jekyllAppPath}; jekyll clean; jekyll build`, (error, stdout, stderr) => {
-    console.log(`stout: ${stdout}\nstderr: ${stderr}`);
-
-    if (error !== null) {
-      res.redirect(301, '/?error=jekyll-rebuild');
-    } else {
-      res.redirect('/?success=true');
-    }
+  uploader.writeFiles({
+    success: () => {
+      uploader.jekyllRebuild({
+        success: () => res.redirect('/?success=true'),
+        error: () => res.redirect(301, '/?error=jekyll-rebuild'),
+      });
+    },
+    error: () => res.redirect(301, '/?error=files-write')
   });
 });
 

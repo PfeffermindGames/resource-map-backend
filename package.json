@@ -21,7 +21,8 @@
     "basic-auth": "^1.0.4",
     "ejs": "^2.5.1",
     "express": "^4.14.0",
-    "multer": "^1.2.0"
+    "multer": "^1.2.0",
+    "xlsx": "^0.8.0"
   },
   "engines": {
     "node": "6.3.1"
