@@ -8,17 +8,22 @@ const DataUploader = require('./data-uploader');
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 const port = process.env.PORT || 3000;
+const publicPath = path.resolve(__dirname, 'public');
 
 app.use(authMiddleware);
+app.use('/', express.static(publicPath));
 app.set('view engine', 'ejs');
 
 app.get('/', (req, res) => {
-  res.render('pages/index', { req: req });
+  const years = [];
+  const thisYear = new Date().getFullYear();
+  for (let i = 2013; i <= thisYear; i++) years.push(i);
+  res.render('pages/index', { req: req, years });
 });
 
 app.post('/upload_data', upload.single('file'), (req, res) => {
   if (!req.file) {
-    res.redirect(301, '/?error=nofile');
+    res.redirect(301, '/?error=no file selected');
     return;
   }
   const uploader = new DataUploader(req.file.path);
