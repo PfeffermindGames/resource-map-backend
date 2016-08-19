@@ -2,39 +2,69 @@ const fs = require('fs');
 const XLSX = require('xlsx');
 const path = require('path');
 const exec = require('child_process').exec;
+const shell = require('shelljs');
 
 const jekyllAppPath = path.resolve(__dirname, '../doi-extractives-data');
 
 module.exports = class DataUploader {
-  constructor(fileName) {
-    const workbook = XLSX.readFile(fileName);
-    this.productionTsv = XLSX.utils.sheet_to_csv(workbook.Sheets['production'], { FS: '\t' });
-    this.charts = this.parseCharts(workbook.Sheets);
+  constructor(req) {
+    const { productionFile, chartsFile } = req.files;
+    this.productionFile = productionFile ? productionFile[0] : null;
+    this.chartsFile = chartsFile ? chartsFile[0] : null;
+    this.year = req.body.year;
   }
 
   writeFiles(callbacks) {
-    let filesToWrite = 2;
-    const jekyllProdDataPath = path.resolve(jekyllAppPath, 'data/regional/production.tsv');
-    fs.writeFile(jekyllProdDataPath, this.productionTsv, (error) => {
-      if (error) {
-        console.log(`Error: ${error}`);
-        callbacks.error();
-      } else {
-        filesToWrite--;
-        if (filesToWrite === 0) callbacks.success();
-      }
-    });
+    if (this.productionFile) this.writeProductionFiles();
+    if (this.chartsFile) this.writeChartFiles();
+    callbacks.success();
+  }
 
-    const jekyllChartDataPath = path.resolve(jekyllAppPath, 'data/regional/charts.json');
-    fs.writeFile(jekyllChartDataPath, JSON.stringify(this.charts), (error) => {
-      if (error) {
-        console.log(`Error: ${error}`);
-        callbacks.error();
-      } else {
-        filesToWrite--;
-        if (filesToWrite === 0) callbacks.success();
+  writeChartFiles() {
+    console.log('writting charts data...');
+    const workbook = XLSX.readFile(this.chartsFile.path);
+    const chartsJson = this.parseCharts(workbook.Sheets);
+    fs.writeFileSync(
+      path.resolve(jekyllAppPath, 'data/regional/charts.json'),
+      JSON.stringify(chartsJson)
+    );
+  }
+
+  writeProductionFiles() {
+    console.log('writting prod data...');
+    const workbook = XLSX.readFile(this.productionFile.path);
+    const productionTsv = XLSX.utils.sheet_to_csv(
+      workbook.Sheets['production'], { FS: '\t' }
+    );
+
+    fs.writeFileSync(
+      path.resolve(jekyllAppPath, `data/regional/yearly/${this.year}.tsv`),
+      productionTsv
+    );
+
+    const years = shell.ls(path.resolve(jekyllAppPath, `data/regional/yearly/*.tsv`));
+    const allYearsProd = years.map((e) => e).sort().map((fileName, i) => {
+      const fileNameSplit = fileName.split('/');
+      const year = fileNameSplit[fileNameSplit.length - 1].replace('.tsv', '');
+      let data = shell.cat(fileName);
+      if (i !== 0) {
+        data = data.split('\n').slice(1).join('\n');
       }
-    });
+      return this.addYearColumnToTsv(year, data, i === 0);
+    }).join('');
+
+    fs.writeFileSync(
+      path.resolve(jekyllAppPath, `data/regional/production.tsv`),
+      allYearsProd
+    );
+  }
+
+  addYearColumnToTsv(year, tsvStr, withHeader) {
+    return tsvStr.split('\n').map((line, i) => {
+      return i === 0 && withHeader ? `Year\t${line}` : (
+        line.length > 0 ? `${year}\t${line}` : ''
+      );
+    }).join('\n');
   }
 
   jekyllRebuild(callbacks) {

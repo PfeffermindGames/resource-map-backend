@@ -4,6 +4,7 @@ const path = require('path');
 const multer = require('multer');
 const authMiddleware = require('./middlewares/auth-middleware');
 const DataUploader = require('./data-uploader');
+const bodyParser = require('body-parser');
 
 const app = express();
 const upload = multer({ dest: 'uploads/' });
@@ -12,6 +13,7 @@ const publicPath = path.resolve(__dirname, 'public');
 
 app.use(authMiddleware);
 app.use('/', express.static(publicPath));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
 app.get('/', (req, res) => {
@@ -21,12 +23,13 @@ app.get('/', (req, res) => {
   res.render('pages/index', { req: req, years });
 });
 
-app.post('/upload_data', upload.single('file'), (req, res) => {
-  if (!req.file) {
+const fields = upload.fields([{name: 'productionFile'}, {name: 'chartsFile'}]);
+app.post('/upload_data', fields, (req, res) => {
+  if (!req.files.productionFile && !req.files.chartsFile) {
     res.redirect(301, '/?error=no file selected');
     return;
   }
-  const uploader = new DataUploader(req.file.path);
+  const uploader = new DataUploader(req);
 
   uploader.writeFiles({
     success: () => {
