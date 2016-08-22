@@ -24,10 +24,20 @@ module.exports = class DataUploader {
     console.log('writting charts data...');
     const workbook = XLSX.readFile(this.chartsFile.path);
     const chartsJson = this.parseCharts(workbook.Sheets);
+
+    // write yearly json
     fs.writeFileSync(
-      path.resolve(jekyllAppPath, 'data/regional/charts.json'),
+      path.resolve(jekyllAppPath, `data/regional/charts/${this.year}.json`),
       JSON.stringify(chartsJson)
     );
+
+    // write individual yearly tsv
+    this.parseChartsTsv(workbook.Sheets).forEach((chart, i) => {
+      fs.writeFileSync(
+        path.resolve(jekyllAppPath, `data/regional/charts/${this.year}-chart${i + 1}.tsv`),
+        chart
+      );
+    });
   }
 
   writeProductionFiles() {
@@ -38,11 +48,11 @@ module.exports = class DataUploader {
     );
 
     fs.writeFileSync(
-      path.resolve(jekyllAppPath, `data/regional/yearly/${this.year}.tsv`),
+      path.resolve(jekyllAppPath, `data/regional/production/${this.year}.tsv`),
       productionTsv
     );
 
-    const years = shell.ls(path.resolve(jekyllAppPath, `data/regional/yearly/*.tsv`));
+    const years = shell.ls(path.resolve(jekyllAppPath, `data/regional/production/*.tsv`));
     const allYearsProd = years.map((e) => e).sort().map((fileName, i) => {
       const fileNameSplit = fileName.split('/');
       const year = fileNameSplit[fileNameSplit.length - 1].replace('.tsv', '');
@@ -91,6 +101,17 @@ module.exports = class DataUploader {
         data: XLSX.utils.sheet_to_json(chart),
         categories: XLSX.utils.sheet_to_json(categs),
       });
+    }
+    return chartsArr;
+  }
+
+  parseChartsTsv(sheets) {
+    let chartsArr = [];
+    let chart = sheets['chart1'];
+    for (let i = 1; chart; i++, chart = sheets[`chart${i}`]) {
+      chartsArr.push(
+        XLSX.utils.sheet_to_csv(chart, { FS: '\t' })
+      );
     }
     return chartsArr;
   }
