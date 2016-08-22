@@ -1,7 +1,7 @@
 var auth = require('basic-auth');
 
-const USER = 'GIZ';
-const PASS = 'pass123';
+const USER = process.env.AUTH_USER || 'GIZ';
+const PASS = process.env.AUTH_PASS || 'pass123';
 
 module.exports = function authMiddleware(req, res, next) {
   var user = auth(req);
