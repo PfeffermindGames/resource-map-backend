@@ -25,20 +25,29 @@ module.exports = class DataUploader {
 
   updateConfig() {
     console.log('Updating configs...');
-    let chartYears = shell.ls(path.resolve(jekyllAppPath, `data/regional/charts/*.json`));
-    chartYears = chartYears.map((fileName) => {
+    const parseYearFromFName = (fileName) => {
       const fileNameSplit = fileName.split('/');
-      return fileNameSplit[fileNameSplit.length - 1].replace('.json', '');
-    }).sort();
-
-    jekyllConfig.charts = {
-      start: chartYears[0],
-      end: chartYears[chartYears.length - 1]
+      return fileNameSplit[fileNameSplit.length - 1].split('.')[0];
     };
 
+    // production config
+    let prodYears = shell.ls(
+      path.resolve(jekyllAppPath, `data/regional/production/*.tsv`)
+    ).map(parseYearFromFName).sort();
+
     fs.writeFileSync(
-      path.resolve(jekyllAppPath, '_config.yml'),
-      YAML.stringify(jekyllConfig)
+      path.resolve(jekyllAppPath, '_data/production.yml'),
+      YAML.stringify({ years: prodYears })
+    );
+
+    // charts config
+    let chartYears = shell.ls(
+      path.resolve(jekyllAppPath, `data/regional/charts/*.json`)
+    ).map(parseYearFromFName).sort();
+
+    fs.writeFileSync(
+      path.resolve(jekyllAppPath, '_data/charts.yml'),
+      YAML.stringify({ years: chartYears })
     );
   }
 
@@ -64,12 +73,12 @@ module.exports = class DataUploader {
 
   writeProductionFiles() {
     console.log('writting prod data...');
+    const workbook = XLSX.readFile(this.productionFile.path);
 
     if (!workbook.Sheets['production']) {
       console.log('wrong format...');
       return;
     }
-    const workbook = XLSX.readFile(this.productionFile.path);
     const productionTsv = XLSX.utils.sheet_to_csv(
       workbook.Sheets['production'], { FS: '\t' }
     );
