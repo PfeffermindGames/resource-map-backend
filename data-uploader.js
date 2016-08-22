@@ -131,9 +131,14 @@ module.exports = class DataUploader {
   parseCharts(sheets) {
     let chartsArr = [];
     let chart = sheets['chart1'];
+    const index = XLSX.utils.sheet_to_json(sheets['charts-index']);
+
     for (let i = 1; chart; i++, chart = sheets[`chart${i}`]) {
       const categs = sheets[`chart${i}-categs`];
+      const chartInfo = index[i - 1];
       chartsArr.push({
+        title: chartInfo.title,
+        title_en: chartInfo.title_en,
         data: XLSX.utils.sheet_to_json(chart),
         categories: XLSX.utils.sheet_to_json(categs),
       });
