@@ -3,8 +3,10 @@ const XLSX = require('xlsx');
 const path = require('path');
 const exec = require('child_process').exec;
 const shell = require('shelljs');
+const YAML = require('yamljs');
 
 const jekyllAppPath = path.resolve(__dirname, '../doi-extractives-data');
+const jekyllConfig = YAML.load(path.resolve(jekyllAppPath, '_config.yml'));
 
 module.exports = class DataUploader {
   constructor(req) {
@@ -17,7 +19,27 @@ module.exports = class DataUploader {
   writeFiles(callbacks) {
     if (this.productionFile) this.writeProductionFiles();
     if (this.chartsFile) this.writeChartFiles();
+    this.updateConfig();
     callbacks.success();
+  }
+
+  updateConfig() {
+    console.log('Updating configs...');
+    let chartYears = shell.ls(path.resolve(jekyllAppPath, `data/regional/charts/*.json`));
+    chartYears = chartYears.map((fileName) => {
+      const fileNameSplit = fileName.split('/');
+      return fileNameSplit[fileNameSplit.length - 1].replace('.json', '');
+    }).sort();
+
+    jekyllConfig.charts = {
+      start: chartYears[0],
+      end: chartYears[chartYears.length - 1]
+    };
+
+    fs.writeFileSync(
+      path.resolve(jekyllAppPath, '_config.yml'),
+      YAML.stringify(jekyllConfig)
+    );
   }
 
   writeChartFiles() {
@@ -42,6 +64,11 @@ module.exports = class DataUploader {
 
   writeProductionFiles() {
     console.log('writting prod data...');
+
+    if (!workbook.Sheets['production']) {
+      console.log('wrong format...');
+      return;
+    }
     const workbook = XLSX.readFile(this.productionFile.path);
     const productionTsv = XLSX.utils.sheet_to_csv(
       workbook.Sheets['production'], { FS: '\t' }
